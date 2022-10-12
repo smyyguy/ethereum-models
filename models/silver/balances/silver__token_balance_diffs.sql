@@ -39,13 +39,17 @@ update_records AS (
         A.block_timestamp,
         A.address,
         A.contract_address,
-        A.current_bal_unadj AS balance,
+        A.balance,
         A._inserted_timestamp
     FROM
-        {{ this }} A
-        INNER JOIN base_table b
-        ON A.address = b.address
-        AND A.contract_address = b.contract_address
+        {{ ref('silver__token_balances') }} A
+    WHERE
+        address IN (
+            SELECT
+                DISTINCT address
+            FROM
+                base_table
+        )
 ),
 last_record AS (
     SELECT
@@ -53,14 +57,31 @@ last_record AS (
         A.block_timestamp,
         A.address,
         A.contract_address,
-        A.current_bal_unadj AS balance,
+        A.balance,
         A._inserted_timestamp
     FROM
-        {{ this }} A
+        update_records A
         INNER JOIN base_table b
-        ON A.address = b.address qualify(ROW_NUMBER() over (PARTITION BY A.address, A.contract_address
+        ON A.address = b.address
+        AND A.contract_address = b.contract_address
+        AND A.block_number < b.block_number qualify(ROW_NUMBER() over (PARTITION BY A.address, A.contract_address
     ORDER BY
         A.block_number DESC)) = 1
+),
+fix_records AS (
+    SELECT
+        A.block_number,
+        A.block_timestamp,
+        A.address,
+        A.contract_address,
+        A.balance,
+        A._inserted_timestamp
+    FROM
+        update_records A
+        INNER JOIN base_table b
+        ON A.address = b.address
+        AND A.contract_address = b.contract_address
+        AND A.block_number > b.block_number
 ),
 all_records AS (
     SELECT
@@ -81,7 +102,7 @@ all_records AS (
         balance,
         _inserted_timestamp
     FROM
-        update_records
+        last_record
     UNION ALL
     SELECT
         block_number,
@@ -91,7 +112,7 @@ all_records AS (
         balance,
         _inserted_timestamp
     FROM
-        last_record
+        fix_records
 ),
 incremental AS (
     SELECT

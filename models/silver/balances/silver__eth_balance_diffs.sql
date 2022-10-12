@@ -37,27 +37,17 @@ update_records AS (
         A.block_number,
         A.block_timestamp,
         A.address,
-        A.current_bal_unadj AS balance,
+        A.balance,
         A._inserted_timestamp
     FROM
-        {{ this }} A
-        INNER JOIN base_table b
-        ON A.block_number >= b.block_number
-        AND A.address = b.address
-),
-last_record AS (
-    SELECT
-        A.block_number,
-        A.block_timestamp,
-        A.address,
-        A.current_bal_unadj AS balance,
-        A._inserted_timestamp
-    FROM
-        {{ this }} A
-        INNER JOIN base_table b
-        ON A.address = b.address qualify(ROW_NUMBER() over (PARTITION BY A.address
-    ORDER BY
-        A.block_number DESC)) = 1
+        {{ ref('silver__eth_balances') }} A
+    WHERE
+        address IN (
+            SELECT
+                DISTINCT address
+            FROM
+                base_table
+        )
 ),
 all_records AS (
     SELECT
@@ -77,15 +67,6 @@ all_records AS (
         _inserted_timestamp
     FROM
         update_records
-    UNION ALL
-    SELECT
-        block_number,
-        block_timestamp,
-        address,
-        balance,
-        _inserted_timestamp
-    FROM
-        last_record
 ),
 incremental AS (
     SELECT
