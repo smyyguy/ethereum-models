@@ -11,7 +11,7 @@ models:
       - name: BLOCK_NUMBER
         description: 'Block number at which the token balance was read.'   
       - name: BLOCK_TIMESTAMP
-        description: 'Timestamp of block read.'
+        description: 'Timestamp of block number read.'
       - name: USER_ADDRESS
         description: 'Wallet / contract address holding tokens.'
       - name: CONTRACT_ADDRESS
