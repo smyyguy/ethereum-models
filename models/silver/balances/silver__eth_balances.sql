@@ -1,13 +1,13 @@
 {{ config(
     materialized = 'incremental',
     unique_key = 'id',
-    cluster_by = ['_inserted_timestamp::date', 'block_timestamp::date'],
+    cluster_by = ['block_timestamp::date'],
     tags = ['balances'],
-    merge_update_columns = ["id"]
+    merge_update_columns = ["id"],
+    post_hook = "ALTER TABLE {{ this }} ADD SEARCH OPTIMIZATION"
 ) }}
 
-WITH
-block_dates AS (
+WITH block_dates AS (
 
     SELECT
         block_timestamp,
@@ -15,9 +15,7 @@ block_dates AS (
     FROM
         {{ ref("silver__blocks") }}
 ),
-
-
- meta AS (
+meta AS (
     SELECT
         registered_on,
         file_name
@@ -71,9 +69,8 @@ FROM
     s
     JOIN meta m
     ON m.file_name = metadata$filename
-    join block_dates b
-    on s.block_number = b.block_number
-
+    JOIN block_dates b
+    ON s.block_number = b.block_number
 
 {% if is_incremental() %}
 JOIN partitions p

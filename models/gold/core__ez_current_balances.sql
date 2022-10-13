@@ -45,9 +45,9 @@ latest_tokens AS (
         block_timestamp,
         address,
         contract_address,
-        current_bal_unadj
+        balance as current_bal_unadj
     FROM
-        {{ ref("silver__token_balance_diffs") }}
+        {{ ref("silver__token_balances") }}
         qualify(ROW_NUMBER() over (PARTITION BY address, contract_address
     ORDER BY
         block_number DESC)) = 1
@@ -58,9 +58,9 @@ latest_eth AS (
         block_timestamp,
         address,
         NULL AS contract_address,
-        current_bal_unadj
+        balance as current_bal_unadj
     FROM
-        {{ ref("silver__eth_balance_diffs") }}
+        {{ ref("silver__eth_balances") }}
         qualify(ROW_NUMBER() over (PARTITION BY address
     ORDER BY
         block_number DESC)) = 1
