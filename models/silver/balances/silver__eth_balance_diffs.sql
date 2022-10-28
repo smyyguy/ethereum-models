@@ -42,13 +42,59 @@ all_records AS (
     FROM
         {{ ref('silver__eth_balances') }} A
     WHERE
-        block_number > 15600000
+        block_number > (
+            SELECT
+                max_block - 100000
+            FROM
+                (
+                    SELECT
+                        MAX(block_number) AS max_block
+                    FROM
+                        base_table
+                )
+        )
         AND address IN (
             SELECT
                 DISTINCT address
             FROM
                 base_table
         )
+),
+min_record AS (
+    SELECT
+        address AS min_address,
+        MIN(block_number) AS min_block
+    FROM
+        base_table
+    GROUP BY
+        1
+),
+update_records AS (
+    SELECT
+        block_number,
+        block_timestamp,
+        address,
+        balance,
+        _inserted_timestamp
+    FROM
+        all_records
+        INNER JOIN min_record
+        ON address = min_address
+        AND block_number >= min_block
+    UNION ALL
+    SELECT
+        block_number,
+        block_timestamp,
+        address,
+        balance,
+        _inserted_timestamp
+    FROM
+        all_records
+        INNER JOIN min_record
+        ON address = min_address
+        AND block_number < min_block qualify(ROW_NUMBER() over (PARTITION BY address
+    ORDER BY
+        block_number DESC, _inserted_timestamp DESC)) = 1
 ),
 incremental AS (
     SELECT
@@ -58,7 +104,7 @@ incremental AS (
         balance,
         _inserted_timestamp
     FROM
-        all_records qualify(ROW_NUMBER() over (PARTITION BY address, block_number
+        update_records qualify(ROW_NUMBER() over (PARTITION BY address, block_number
     ORDER BY
         _inserted_timestamp DESC)) = 1
 )

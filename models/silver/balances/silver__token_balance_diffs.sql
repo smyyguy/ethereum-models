@@ -33,7 +33,7 @@ WHERE
 )
 
 {% if is_incremental() %},
-update_records AS (
+all_records AS (
     SELECT
         A.block_number,
         A.block_timestamp,
@@ -44,13 +44,68 @@ update_records AS (
     FROM
         {{ ref('silver__token_balances') }} A
     WHERE
-        block_number > 15600000
+        block_number > (
+            SELECT
+                max_block - 100000
+            FROM
+                (
+                    SELECT
+                        MAX(block_number) AS max_block
+                    FROM
+                        base_table
+                )
+        )
         AND address IN (
             SELECT
                 DISTINCT address
             FROM
                 base_table
         )
+),
+min_record AS (
+    SELECT
+        address AS min_address,
+        contract_address AS min_contract,
+        MIN(block_number) AS min_block
+    FROM
+        base_table
+    GROUP BY
+        1,
+        2
+),
+update_records AS (
+    -- this gets anything in the incremental or anything newer than records in the
+    -- incremental from that address already in the table
+    SELECT
+        block_number,
+        block_timestamp,
+        address,
+        contract_address,
+        balance,
+        _inserted_timestamp
+    FROM
+        all_records
+        INNER JOIN min_record
+        ON address = min_address
+        AND contract_address = min_contract
+        AND block_number >= min_block
+    UNION ALL
+        -- the last record per wallet before incremental
+    SELECT
+        block_number,
+        block_timestamp,
+        address,
+        contract_address,
+        balance,
+        _inserted_timestamp
+    FROM
+        all_records
+        INNER JOIN min_record
+        ON address = min_address
+        AND contract_address = min_contract
+        AND block_number < min_block qualify(ROW_NUMBER() over (PARTITION BY address, contract_address
+    ORDER BY
+        block_number DESC, _inserted_timestamp DESC)) = 1
 ),
 incremental AS (
     SELECT
