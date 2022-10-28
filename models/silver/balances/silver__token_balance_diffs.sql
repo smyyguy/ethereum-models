@@ -44,18 +44,7 @@ all_records AS (
     FROM
         {{ ref('silver__token_balances') }} A
     WHERE
-        block_number > (
-            SELECT
-                max_block - 100000
-            FROM
-                (
-                    SELECT
-                        MAX(block_number) AS max_block
-                    FROM
-                        base_table
-                )
-        )
-        AND address IN (
+        address IN (
             SELECT
                 DISTINCT address
             FROM
