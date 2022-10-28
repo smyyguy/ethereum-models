@@ -255,9 +255,10 @@ token_balances AS (
         ) AS prev_block_number,
         address,
         contract_address,
-        balance
+        current_bal_unadj,
+        prev_bal_unadj AS balance
     FROM
-        {{ ref('silver__token_balances') }}
+        {{ ref('silver__token_balance_diffs') }}
     WHERE
         block_timestamp :: DATE > '2021-04-01'
         AND address IN (
@@ -296,7 +297,7 @@ max_bal AS (
         block_number,
         address,
         contract_address,
-        balance AS max_bal
+        current_bal_unadj AS max_bal
     FROM
         token_balances qualify(ROW_NUMBER() over(PARTITION BY address, contract_address
     ORDER BY

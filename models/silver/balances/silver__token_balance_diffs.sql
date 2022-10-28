@@ -44,7 +44,7 @@ update_records AS (
     FROM
         {{ ref('silver__token_balances') }} A
     WHERE
-        block_number > 15000000
+        block_number > 15600000
         AND address IN (
             SELECT
                 DISTINCT address
