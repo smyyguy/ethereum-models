@@ -2,7 +2,7 @@ version: 2
 models:
   - name: core__fact_eth_balances
     description: > 
-      'This table contains the unadjusted Ether (ETH) balances for user on the Ethereum blockchain. 
+      'This table contains the unadjusted Ether (ETH) balances for users on the Ethereum blockchain. 
       When an ETH transfer occurs, we will read the balance of the involved parties at the transfer block.'
       
     columns:
