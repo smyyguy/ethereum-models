@@ -1,7 +1,7 @@
 {{ config(
     materialized = 'incremental',
     unique_key = 'id',
-    cluster_by = ['block_timestamp::date'],
+    cluster_by = ['_inserted_timestamp::date', 'block_timestamp::date'],
     tags = ['balances'],
     merge_update_columns = ["id"],
     post_hook = "ALTER TABLE {{ this }} ADD SEARCH OPTIMIZATION"
