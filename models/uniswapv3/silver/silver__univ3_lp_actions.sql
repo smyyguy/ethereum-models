@@ -246,7 +246,7 @@ FINAL AS (
         A._log_id AS _log_id,
         _inserted_timestamp
     FROM   
-        lp_amounts A
+        lp_amounts A 
         LEFT JOIN token_prices p0
         ON p0.token_address = token0_address
         AND p0.hour = DATE_TRUNC(
